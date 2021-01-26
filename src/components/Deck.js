@@ -36,6 +36,26 @@ const styles = {
     backgroundColor: "rgba(255, 0,0,0.2)",
     zIndex: 9999,
   },
+  nav_buttons_container: {
+    margin: 0,
+    padding: 0,
+    width: "100vw",
+    height: "300px",
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    display: 'flex',
+    flexDirection:'row',
+    justifyContent: 'space-between',
+    backgroundColor: "rgba(0, 0, 255, 0.3)",
+    zIndex: 99999,
+  },
+  nav_buttons: {
+    width: "50%",
+    height: "auto",
+    cursor: 'pointer'
+  }
 };
 
 export class Deck extends Component {
@@ -61,18 +81,40 @@ export class Deck extends Component {
         let img_width_as_percentage = 50;
         img_width_as_percentage = window.innerWidth < 768 ? 100 : img_width_as_percentage;
 
+        let nav_buttons_placement_as_percentage = 60
+        nav_buttons_placement_as_percentage = window.innerWidth < 768 ? 100 : nav_buttons_placement_as_percentage;
+
         this.new_width = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? ( img_width_as_percentage / 100 ) * window.screen.width : ( img_width_as_percentage / 100) * window.innerWidth;
 
         this.view_port.style.width = `${this.new_width}px`
+        this.nav_buttons_container.style.width = `${nav_buttons_placement_as_percentage}vw`
+        this.nav_buttons_next.style.width = `${(this.new_width / 2 ) * 0.30}px`
+        this.nav_buttons_prev.style.width = `${(this.new_width / 2 ) * 0.30}px`
+
 
       window.addEventListener('resize', () => {
         img_width_as_percentage = 50;
         img_width_as_percentage = window.innerWidth < 768 ? 100 : img_width_as_percentage;
 
+         nav_buttons_placement_as_percentage = 60
+        nav_buttons_placement_as_percentage = window.innerWidth < 768 ? 100 : nav_buttons_placement_as_percentage;
+
         this.new_width = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? ( img_width_as_percentage / 100 ) * window.screen.width : ( img_width_as_percentage / 100) * window.innerWidth;
 
         this.view_port.style.width = `${this.new_width}px`;
+        this.nav_buttons_container.style.width = `${nav_buttons_placement_as_percentage}vw`
+        this.nav_buttons_next.style.width = `${(this.new_width / 2 ) * 0.30}px`
+        this.nav_buttons_prev.style.width = `${(this.new_width / 2 ) * 0.30}px`
+
         this.order_cards();
+
+        this.right_boundary = parseFloat(this.images.children[this.state.number_of_cards_by_index].style.left) + this.new_width
+      this.left_boundary = parseFloat(this.images.children[0].style.left) - this.new_width
+
+      for (let index = 0; index < this.images.children.length; index++) {
+       this.last_positions[index] = parseFloat(this.images.children[index].style.left)
+      }
+
       })
       this.order_cards();
 
@@ -94,9 +136,23 @@ export class Deck extends Component {
 
 
       // BUTTON NAVIGATION
+      this.scroll_in_progress = 0.0
 
-      
       // WHEEL NAVIGATION
+      this.mouse_over = false
+      this.wheel_timeout_id = null
+
+
+      this.touch_area.addEventListener('mouseover', this.handle_mouse_over, {passive: false})
+      this.touch_area.addEventListener('mouseleave', this.handle_mouse_leave, {passive: false})
+      this.touch_area.addEventListener('wheel', this.handle_wheel, {passive: false})
+
+        // SNAP BACK LOGIC
+      this.snap_in_progress = false
+      this.distance_to_scroll = 0.0
+      this.seed = 0.0
+      this.snap_speed_modifier = 0.05
+
     });
   }
 
@@ -140,8 +196,51 @@ export class Deck extends Component {
     }
   }
 
+   // SNAP BACK LOGIC
+      snap_back = () => {
+        this.snap_in_progress = true
+        const adjusted_positions = this.last_positions.map(position => Math.abs(position - (this.new_width / 2)))
+
+        const closest_card_by_index = adjusted_positions.indexOf(Math.min(...adjusted_positions))
+
+        this.distance_to_scroll = adjusted_positions[closest_card_by_index] * (this.last_positions[closest_card_by_index] > (this.new_width /2 ) ? -1.0 : 1.0)
+        this.animate_snap()
+
+      }
+
+      animate_snap = () => {
+        this.seed = parseFloat(this.seed.toFixed(2) )
+          // let percentage_to_move = this.seed /100 linear
+          let percentage_to_move = Math.pow(this.seed, 2.0)
+          percentage_to_move = parseFloat(percentage_to_move.toFixed(2))
+          // if (this.seed > 100) linear
+          if (this.seed > 1) {
+            this.snap_in_progress = false
+            this.seed =0.0
+
+            for (let index = 0; index < this.images.children.length; index++) {
+              this.updated_position = this.last_positions[index] + this.distance_to_scroll
+             this.images.children[index].style.left = `${this.updated_position}px`
+             this.last_positions[index] = this.updated_position
+            }
+
+            this.handle_boundaries()
+            return
+
+          }
+
+          for (let index = 0; index < this.images.children.length; index++) {
+            this.updated_position = this.last_positions[index] + (percentage_to_move * this.distance_to_scroll)
+           this.images.children[index].style.left = `${this.updated_position}px`
+          }
+
+          this.seed += 1 * this.snap_speed_modifier
+          requestAnimationFrame(this.animate_snap)
+      }
+
    // TOUCH NAVIGATION
    handle_touch_start = event => {
+     if( this.snap_in_progress ) return
     this.start_touch_position = event.changedTouches[0].screenX
 
     for (let index = 0; index < this.images.children.length; index++) {
@@ -151,7 +250,8 @@ export class Deck extends Component {
    }
 
    handle_touch_move = event => {
-     event.preventDefault();
+     event.preventDefault()
+     if( this.snap_in_progress ) return
 
      const current_touch_position = event.changedTouches[0].screenX
      let difference = current_touch_position - this.start_touch_position
@@ -169,17 +269,91 @@ export class Deck extends Component {
   }
 
   handle_touch_end = () => {
-     
+    if( this.snap_in_progress ) return
+
+    this.snap_back()
   }
    // BUTTON NAVIGATION
+
+   handle_next = () => {
+    if(this.scroll_in_progress || this.snap_in_progress) return;
+    this.scroll_in_progress = true;
+
+    for (let index = 0; index < this.images.children.length; index++) {
+      this.updated_position = this.last_positions[index] + this.new_width
+      this.images.children[index].style.transitionDuration = '0.5s'
+     this.images.children[index].style.left = `${this.updated_position}px`
+     this.last_positions[index] = this.updated_position
+    }
+    this.handle_boundaries()
+
+    setTimeout(() => {
+      this.scroll_in_progress = false
+    }, 500);
+   }
+
+   handle_prev = () => {
+    if(this.scroll_in_progress || this.snap_in_progress) return;
+    this.scroll_in_progress = true;
+
+    for (let index = 0; index < this.images.children.length; index++) {
+      this.updated_position = this.last_positions[index] - this.new_width
+      this.images.children[index].style.transitionDuration = '0.5s'
+     this.images.children[index].style.left = `${this.updated_position}px`
+     this.last_positions[index] = this.updated_position
+    }
+    this.handle_boundaries()
+
+    setTimeout(() => {
+      this.scroll_in_progress = false
+    }, 500);
+  } 
    // WHEEL NAVIGATION
+
+handle_mouse_over = () => {
+  if(this.snap_in_progress) return
+  this.mouse_over = true
+
+  for (let index = 0; index < this.images.children.length; index++) {
+    this.images.children[index].style.transitionDuration = '0.0s'
+   }
+
+}
+
+handle_mouse_leave = () => {
+  if(this.snap_in_progress) return
+  this.mouse_over = true
+}
+
+handle_wheel = event => {
+  event.preventDefault()
+  clearTimeout(this.wheel_timeout_id)
+  if(this.snap_in_progress) return
+
+  if (this.mouse_over) {
+    for (let index = 0; index < this.images.children.length; index++) {
+      this.updated_position = this.last_positions[index] + (event.deltaY * 0.2)
+     this.images.children[index].style.left = `${this.updated_position}px`
+     this.last_positions[index] = this.updated_position
+    }
+    this.handle_boundaries()
+
+    this.wheel_timeout_id = setTimeout(() => {
+      
+    }, 100)
+  }
+
+}
 
   render() {
     return (
       <Fragment>
-        <button id="prev">Prev</button>
-        <button id="next">Next</button>
-
+        <button onClick={this.handle_prev} id="prev">Prev</button>
+        <button onClick={this.handle_next} id="next">Next</button>
+        <div style={styles.nav_buttons_container} ref={ref_id => this.nav_buttons_container = ref_id} className="nav_buttons_container">
+          <img style={styles.nav_buttons} ref={ref_id => this.nav_buttons_prev = ref_id} onClick={this.handle_prev}  src="../assets/img/left-arrow.png" alt="prev" className="nav_buttons" id="prev"/>
+          <img style={styles.nav_buttons} ref={ref_id => this.nav_buttons_next = ref_id} onClick={this.handle_next}  src="../assets/img/right-arrow.png" alt="next" className="nav_buttons" id="next"/>
+        </div>
         <div
           ref={ref_id => this.touch_area = ref_id}
           style={styles.touch_area}

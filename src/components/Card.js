@@ -23,7 +23,7 @@ const styles = {
 
 const Card = (props) => {
     return (
-        <div style={styles.card} className="card">
+        <div style={styles.card} className="card" id={props.myid}>
             <img style={styles.img} src={props.picsum} alt="awesome pic" />
         </div>
     )

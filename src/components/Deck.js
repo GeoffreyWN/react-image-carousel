@@ -53,7 +53,7 @@ export class Deck extends Component {
 
     for (let index = 0; index <= this.state.number_of_cards_by_index; index++) {
       new_cards.push(
-        <Card picsum={`https://picsum.photos/600/${350 + index}`} />
+        <Card picsum={`https://picsum.photos/600/${350 + index}`} key={index} myid={`card_${index}`}/>
       );
     }
 
@@ -75,6 +75,28 @@ export class Deck extends Component {
         this.order_cards();
       })
       this.order_cards();
+
+      // TOUCH NAVIGATION
+      this.start_touch_position = 0.0
+      this.updated_position = 0.0
+      this.speed_modifier = 0.8
+      this.last_positions = []
+      this.right_boundary = parseFloat(this.images.children[this.state.number_of_cards_by_index].style.left) + this.new_width
+      this.left_boundary = parseFloat(this.images.children[0].style.left) - this.new_width
+
+      for (let index = 0; index < this.images.children.length; index++) {
+       this.last_positions.push(parseFloat(this.images.children[index].style.left))
+      }
+
+      this.touch_area.addEventListener('touchstart', this.handle_touch_start, {passive: false})
+      this.touch_area.addEventListener('touchmove', this.handle_touch_move, {passive: false})
+      this.touch_area.addEventListener('touchend', this.handle_touch_end, {passive: false})
+
+
+      // BUTTON NAVIGATION
+
+      
+      // WHEEL NAVIGATION
     });
   }
 
@@ -97,6 +119,60 @@ export class Deck extends Component {
       }
     }
   };
+
+  handle_boundaries = () => {
+    if (this.last_positions[this.state.number_of_cards_by_index] >= this.right_boundary) {
+      const beginning_of_deck = this.last_positions[0] - this.new_width
+      this.images.children[this.state.number_of_cards_by_index].style.left = `${beginning_of_deck}px`
+      this.last_positions[this.state.number_of_cards_by_index] = beginning_of_deck;
+
+      this.images.insertBefore(this.images.children[this.state.number_of_cards_by_index], this.images.children[0])
+      this.last_positions.splice(0, 0, this.last_positions.pop())   
+    }
+
+    if (this.last_positions[0] <= this.left_boundary) {
+      const end_of_deck = this.last_positions[this.state.number_of_cards_by_index] + this.new_width
+    this.images.children[0].style.left = `${end_of_deck}px`
+    this.last_positions[0] = end_of_deck;
+
+    this.images.appendChild(this.images.children[0], this.images.children[this.state.number_of_cards_by_index])
+    this.last_positions.splice(this.state.number_of_cards_by_index, 0, this.last_positions.shift()) 
+    }
+  }
+
+   // TOUCH NAVIGATION
+   handle_touch_start = event => {
+    this.start_touch_position = event.changedTouches[0].screenX
+
+    for (let index = 0; index < this.images.children.length; index++) {
+      this.images.children[index].style.transitionDuration = '0.0s'
+     }
+
+   }
+
+   handle_touch_move = event => {
+     event.preventDefault();
+
+     const current_touch_position = event.changedTouches[0].screenX
+     let difference = current_touch_position - this.start_touch_position
+
+     difference *= this.speed_modifier
+
+     this.start_touch_position = current_touch_position
+
+     for (let index = 0; index < this.images.children.length; index++) {
+       this.updated_position = this.last_positions[index] + difference
+      this.images.children[index].style.left = `${this.updated_position}px`
+      this.last_positions[index] = this.updated_position
+     }
+     this.handle_boundaries()
+  }
+
+  handle_touch_end = () => {
+     
+  }
+   // BUTTON NAVIGATION
+   // WHEEL NAVIGATION
 
   render() {
     return (

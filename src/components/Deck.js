@@ -1,5 +1,7 @@
 import React, { Component, Fragment } from "react";
 import Card from "./Card";
+import left from './left.png'
+import right from './right.png'
 
 const styles = {
   view_port: {
@@ -10,8 +12,8 @@ const styles = {
     position: "absolute",
     top: "50%",
     left: "50%",
-    transform: "translate(-50%, -50%)"
-    // overflow: 'hidden',
+    transform: "translate(-50%, -50%)",
+    overflow: 'hidden',
     
   },
   images_container: {
@@ -33,12 +35,13 @@ const styles = {
     top: "50%",
     left: "50%",
     transform: "translate(-50%, -50%)",
-    backgroundColor: "rgba(255, 0,0,0.2)",
+    // backgroundColor: "rgba(255, 0,0,0.2)",
     zIndex: 9999,
   },
   nav_buttons_container: {
     margin: 0,
     padding: 0,
+    alignItems: "center",
     width: "100vw",
     height: "300px",
     position: "absolute",
@@ -48,13 +51,15 @@ const styles = {
     display: 'flex',
     flexDirection:'row',
     justifyContent: 'space-between',
-    backgroundColor: "rgba(0, 0, 255, 0.3)",
+    // backgroundColor: "rgba(0, 0, 255, 0.3)",
     zIndex: 99999,
+    pointerEvents:"none"
   },
   nav_buttons: {
     width: "50%",
-    height: "auto",
-    cursor: 'pointer'
+    height: "50px",
+    cursor: 'pointer',
+    pointerEvents:"all"
   }
 };
 
@@ -351,8 +356,8 @@ handle_wheel = event => {
         <button onClick={this.handle_prev} id="prev">Prev</button>
         <button onClick={this.handle_next} id="next">Next</button>
         <div style={styles.nav_buttons_container} ref={ref_id => this.nav_buttons_container = ref_id} className="nav_buttons_container">
-          <img style={styles.nav_buttons} ref={ref_id => this.nav_buttons_prev = ref_id} onClick={this.handle_prev}  src="../assets/img/left-arrow.png" alt="prev" className="nav_buttons" id="prev"/>
-          <img style={styles.nav_buttons} ref={ref_id => this.nav_buttons_next = ref_id} onClick={this.handle_next}  src="../assets/img/right-arrow.png" alt="next" className="nav_buttons" id="next"/>
+          <img style={styles.nav_buttons} ref={ref_id => this.nav_buttons_prev = ref_id} onClick={this.handle_prev}  src={left} alt="prev" className="nav_buttons" id="prev"/>
+          <img style={styles.nav_buttons} ref={ref_id => this.nav_buttons_next = ref_id} onClick={this.handle_next}  src={right} alt="next" className="nav_buttons" id="next"/>
         </div>
         <div
           ref={ref_id => this.touch_area = ref_id}
